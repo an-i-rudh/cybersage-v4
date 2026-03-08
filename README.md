@@ -9,6 +9,6 @@ CyberSage is a hybrid security analysis tool that combines **CodeBERT** embeddin
 
 ## 🛠️ Setup
 1. Clone the repo.
-2. Install dependencies: `pip install flask flask-cors lightgbm transformers torch scipy`
+2. pip install -r requirements.txt
 3. Run the backend: `python app.py`
 4. Open `index.html` in your browser.
