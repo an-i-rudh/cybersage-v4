@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CyberSage | AI Vulnerability Detector</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --card: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --red: #f85149;
+            --green: #3fb950;
+            --text-main: #c9d1d9;
+            --text-dim: #8b949e;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Professional Header */
+        nav {
+            width: 100%;
+            padding: 20px 50px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i { color: var(--accent); }
+
+        /* Main Container */
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin-top: 50px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .editor-container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .editor-header {
+            background: #21262d;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .code-area-wrapper {
+            position: relative;
+            display: flex;
+        }
+
+        .line-numbers {
+            width: 45px;
+            background: #0d1117;
+            padding: 15px 0;
+            text-align: center;
+            color: #484f58;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            user-select: none;
+            border-right: 1px solid var(--border);
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e6edf3;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            padding: 15px;
+            min-height: 400px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        /* Vulnerability Highlighting */
+        .highlight-layer {
+            position: absolute;
+            top: 0; left: 45px; right: 0; bottom: 0;
+            pointer-events: none;
+            padding: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: transparent;
+            white-space: pre-wrap;
+        }
+
+        .vuln-line {
+            background: rgba(248, 81, 73, 0.15);
+            border-left: 3px solid var(--red);
+            display: block;
+            margin-left: -15px;
+            padding-left: 12px;
+        }
+
+        /* Action Section */
+        .actions {
+            margin-top: 25px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+        }
+
+        .btn-primary:hover { background: #79c0ff; transform: translateY(-1px); }
+
+        /* Result Panel */
+        #resultPanel {
+            margin-top: 30px;
+            display: none;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .verdict-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .verdict-icon { font-size: 3rem; margin-bottom: 15px; }
+        .verdict-text { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; }
+        
+        .status-vulnerable { color: var(--red); }
+        .status-safe { color: var(--green); }
+
+        .details-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .pattern-tag {
+            display: inline-block;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 12, 16, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loader {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">
+        <i class="fas fa-shield-halved"></i>
+        <span>CYBERSAGE <span style="font-weight: 300; opacity: 0.7;">VULNERABILITY DETECTOR</span></span>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--text-dim);">AI-Engine v3.0 | BigVul Dataset</div>
+</nav>
+
+<div class="container">
+    <div class="editor-container">
+        <div class="editor-header">
+            <span><i class="fas fa-code"></i> SOURCE_ANALYSIS.CPP</span>
+            <span>UTF-8</span>
+        </div>
+        <div class="code-area-wrapper">
+            <div class="line-numbers" id="lineNumbers">1</div>
+            <div class="highlight-layer" id="highlightLayer"></div>
+            <textarea id="codeInput" spellcheck="false" oninput="updateLineNumbers()" placeholder="// Paste C/C++ function here..."></textarea>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn" style="background: transparent; color: var(--text-dim);" onclick="clearAll()">Clear</button>
+        <button class="btn btn-primary" onclick="runAnalysis()">Run AI Analysis</button>
+    </div>
+
+    <div id="resultPanel">
+        <div class="verdict-card" id="verdictCard">
+            <div class="verdict-icon" id="vIcon"></div>
+            <div class="verdict-text" id="vLabel">SCANNING...</div>
+            <div style="font-size: 0.8rem; color: var(--text-dim);">Final Security Decision</div>
+        </div>
+
+        <div class="details-card">
+            <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Analysis Report</div>
+            <div id="reportContent">
+                <p id="summaryText" style="font-size: 0.95rem; line-height: 1.6;">AI scanning complete. Results are being processed based on structural patterns and CodeBERT embeddings.</p>
+                <div id="patternList"></div>
+            </div>
+            
+            <div style="margin-top: 25px; display: flex; gap: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <div><div id="vProb" style="font-weight: bold; font-size: 1.1rem;">0.00</div><div style="font-size: 0.7rem; color: var(--text-dim);">RAW SCORE</div></div>
+                <div><div id="vThresh" style="font-weight: bold; font-size: 1.1rem;">0.10</div><div style="font-size: 0.7rem; color: var(--text-dim);">THRESHOLD</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loading">
+    <div class="loader"></div>
+    <p style="margin-top: 20px; font-weight: 600; letter-spacing: 1px;">AI ANALYZING STRUCTURE...</p>
+</div>
+
+<script>
+    const API = 'http://localhost:5000/predict';
+
+    function updateLineNumbers() {
+        const textarea = document.getElementById('codeInput');
+        const lineNumbers = document.getElementById('lineNumbers');
+        const lines = textarea.value.split('\n').length;
+        lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+        
+        // Clear highlights on edit
+        document.getElementById('highlightLayer').innerHTML = '';
+        document.getElementById('resultPanel').style.display = 'none';
+    }
+
+    function clearAll() {
+        document.getElementById('codeInput').value = '';
+        updateLineNumbers();
+    }
+
+    async function runAnalysis() {
+        const code = document.getElementById('codeInput').value.trim();
+        if(!code) return alert("Please enter code.");
+
+        document.getElementById('loading').style.display = 'flex';
+        
+        try {
+            const response = await fetch(API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ func_before: code })
+            });
+            const data = await response.json();
+            displayResults(data, code);
+        } catch (e) {
+            alert("Error: Backend is not reachable.");
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function displayResults(data, code) {
+        const isVuln = data.prediction === 1;
+        const panel = document.getElementById('resultPanel');
+        const vLabel = document.getElementById('vLabel');
+        const vIcon = document.getElementById('vIcon');
+        
+        panel.style.display = 'grid';
+        vLabel.textContent = data.label;
+        vLabel.className = `verdict-text ${isVuln ? 'status-vulnerable' : 'status-safe'}`;
+        vIcon.innerHTML = isVuln ? '<i class="fas fa-biohazard status-vulnerable"></i>' : '<i class="fas fa-check-circle status-safe"></i>';
+        
+        document.getElementById('vProb').textContent = data.probability;
+        document.getElementById('vThresh').textContent = data.threshold;
+
+        // Patterns
+        const patternDiv = document.getElementById('patternList');
+        patternDiv.innerHTML = '';
+        if(data.detected_patterns.length > 0) {
+            data.detected_patterns.forEach(p => {
+                const span = document.createElement('span');
+                span.className = 'pattern-tag';
+                span.textContent = p;
+                patternDiv.appendChild(span);
+            });
+        }
+
+        // Highlight Lines in Editor
+        const lines = code.split('\n');
+        const highlightLayer = document.getElementById('highlightLayer');
+        let html = '';
+        
+        lines.forEach((line, idx) => {
+            const isHighlighted = data.highlight_lines.includes(idx + 1);
+            if(isHighlighted && isVuln) {
+                html += `<span class="vuln-line">${line || ' '}</span>\n`;
+            } else {
+                html += line + '\n';
+            }
+        });
+        highlightLayer.innerHTML = html;
+
+        panel.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
